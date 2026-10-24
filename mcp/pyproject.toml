@@ -1,0 +1,30 @@
+[project]
+name = "tv-home-mcp"
+version = "0.1.0"
+description = "MCP server for the LG TV home server API, plus a root shell on the TV"
+readme = "README.md"
+authors = [
+    { name = "Andrew Stelmach", email = "58709763+astelmach20@users.noreply.github.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastmcp>=4.1.0",
+    "httpx2>=2.13.1",
+]
+
+[project.scripts]
+tv-home-mcp = "tv_home_mcp:main"
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,14 @@
+{
+  "id": "org.tvhome.launcher",
+  "version": "0.1.0",
+  "vendor": "tvhome",
+  "type": "web",
+  "main": "index.html",
+  "title": "Home",
+  "icon": "icon.png",
+  "largeIcon": "icon.png",
+  "bgColor": "#000000",
+  "iconColor": "#000000",
+  "disableBackHistoryAPI": true,
+  "resolution": "1920x1080"
+}

@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Home</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="sky"><i class="v1"></i><i class="v2"></i></div>
+<div class="floor"><div class="grid"></div></div>
+
+<main id="stage">
+  <header>
+    <div id="clock">--:--</div>
+    <div id="status" class="mono"></div>
+  </header>
+
+  <section class="hero">
+    <div id="hero-kicker" class="mono"></div>
+    <div id="hero-title"></div>
+    <div id="hero-hint" class="mono"></div>
+  </section>
+
+  <section class="rails">
+    <div class="rail" data-row="0"><div class="rail-label mono">Apps</div><div class="track" id="apps"></div></div>
+    <div class="rail" data-row="1"><div class="rail-label mono">Inputs</div><div class="track" id="inputs"></div></div>
+    <div id="lens"></div>
+  </section>
+</main>
+<div id="wii">
+  <div id="wii-menu" hidden>
+    <div class="wm-panel">
+      <div class="wm-title"></div>
+      <div class="wm-items"></div>
+    </div>
+  </div>
+</div>
+<div id="saver" hidden>
+  <video id="sv-a" muted playsinline></video><video id="sv-b" muted playsinline></video>
+  <div id="sv-art"></div>
+  <div class="sv-shade"></div>
+  <div class="sv-clock"><div id="sv-time"></div><div id="sv-date" class="mono"></div><div id="sv-weather" class="mono"></div></div>
+  <div id="sv-place" class="mono"></div>
+</div>
+<script src="js/home.js"></script>
+</body>
+</html>

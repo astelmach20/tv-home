@@ -1,0 +1,764 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "tv-home",
+    "description": "LG TV home server",
+    "version": "2.0.0"
+  },
+  "components": {
+    "schemas": {}
+  },
+  "paths": {
+    "/api/apps": {
+      "get": {
+        "operationId": "listApps",
+        "summary": "Installed apps in launcher order",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "App id, for launchApp"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "color": {
+                        "nullable": true,
+                        "description": "Icon background color",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "color"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "operationId": "getStatus",
+        "summary": "What the TV is showing right now",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "foreground": {
+                      "nullable": true,
+                      "description": "App id in front (com.webos.app.hdmi1 for HDMI 1)",
+                      "type": "string"
+                    },
+                    "watching": {
+                      "nullable": true,
+                      "description": "What is being watched: the app id, or \"<input app>|<device name>\" on an HDMI input",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "foreground",
+                    "watching"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices": {
+      "get": {
+        "operationId": "listDevices",
+        "summary": "Every device the TV can see (HDMI-CEC sources, Sonos speakers) and its state",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Stable id: cec-<physical address>, hdmi-<port>, or sonos-<RINCON id>"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "on": {
+                            "nullable": true,
+                            "description": "null when the device can't say",
+                            "type": "boolean"
+                          },
+                          "via": {
+                            "type": "string",
+                            "enum": [
+                              "hdmi-cec"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "playback",
+                              "audio",
+                              "other"
+                            ]
+                          },
+                          "input": {
+                            "type": "string",
+                            "description": "Input app that shows this device (com.webos.app.hdmi1)"
+                          },
+                          "port": {
+                            "type": "number",
+                            "description": "HDMI port"
+                          },
+                          "watching": {
+                            "type": "boolean",
+                            "description": "On screen now"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "on",
+                          "via",
+                          "kind",
+                          "input",
+                          "port",
+                          "watching"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Stable id: cec-<physical address>, hdmi-<port>, or sonos-<RINCON id>"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "on": {
+                            "nullable": true,
+                            "description": "null when the device can't say",
+                            "type": "boolean"
+                          },
+                          "via": {
+                            "type": "string",
+                            "enum": [
+                              "sonos"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "speaker"
+                            ]
+                          },
+                          "model": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "tv",
+                              "spotify",
+                              "airplay",
+                              "line-in",
+                              "grouped",
+                              "app",
+                              "none"
+                            ],
+                            "description": "Where its audio comes from"
+                          },
+                          "state": {
+                            "type": "string",
+                            "description": "PLAYING, PAUSED_PLAYBACK, STOPPED or TRANSITIONING"
+                          },
+                          "uri": {
+                            "type": "string",
+                            "description": "Current transport URI"
+                          },
+                          "since": {
+                            "type": "string",
+                            "description": "When the source or state last changed (ISO)"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "Local control URL"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "on",
+                          "via",
+                          "kind",
+                          "source",
+                          "state",
+                          "uri",
+                          "since",
+                          "url"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devices/{id}": {
+      "get": {
+        "operationId": "getDevice",
+        "summary": "One device and everything known about it",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Device id from listDevices, e.g. cec-4864 or sonos-RINCON_\u2026"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Stable id: cec-<physical address>, hdmi-<port>, or sonos-<RINCON id>"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "on": {
+                          "nullable": true,
+                          "description": "null when the device can't say",
+                          "type": "boolean"
+                        },
+                        "via": {
+                          "type": "string",
+                          "enum": [
+                            "hdmi-cec"
+                          ]
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "playback",
+                            "audio",
+                            "other"
+                          ]
+                        },
+                        "input": {
+                          "type": "string",
+                          "description": "Input app that shows this device (com.webos.app.hdmi1)"
+                        },
+                        "port": {
+                          "type": "number",
+                          "description": "HDMI port"
+                        },
+                        "watching": {
+                          "type": "boolean",
+                          "description": "On screen now"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "on",
+                        "via",
+                        "kind",
+                        "input",
+                        "port",
+                        "watching"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Stable id: cec-<physical address>, hdmi-<port>, or sonos-<RINCON id>"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "on": {
+                          "nullable": true,
+                          "description": "null when the device can't say",
+                          "type": "boolean"
+                        },
+                        "via": {
+                          "type": "string",
+                          "enum": [
+                            "sonos"
+                          ]
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "speaker"
+                          ]
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string",
+                          "enum": [
+                            "tv",
+                            "spotify",
+                            "airplay",
+                            "line-in",
+                            "grouped",
+                            "app",
+                            "none"
+                          ],
+                          "description": "Where its audio comes from"
+                        },
+                        "state": {
+                          "type": "string",
+                          "description": "PLAYING, PAUSED_PLAYBACK, STOPPED or TRANSITIONING"
+                        },
+                        "uri": {
+                          "type": "string",
+                          "description": "Current transport URI"
+                        },
+                        "since": {
+                          "type": "string",
+                          "description": "When the source or state last changed (ISO)"
+                        },
+                        "url": {
+                          "type": "string",
+                          "description": "Local control URL"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "on",
+                        "via",
+                        "kind",
+                        "source",
+                        "state",
+                        "uri",
+                        "since",
+                        "url"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/launch": {
+      "post": {
+        "operationId": "launch",
+        "summary": "Open an app or switch input",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[\\w.-]+$",
+                    "description": "App id (e.g. netflix) or HDMI input app (com.webos.app.hdmi1)"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/weather": {
+      "get": {
+        "operationId": "getWeather",
+        "summary": "Current weather and forecast at home (404 when config.json has no home location)",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "temp": {
+                      "type": "number",
+                      "description": "Temperature now, \u00b0F"
+                    },
+                    "feels": {
+                      "type": "number",
+                      "description": "Feels-like temperature, \u00b0F"
+                    },
+                    "code": {
+                      "type": "number",
+                      "description": "WMO weather code"
+                    },
+                    "wind": {
+                      "type": "number",
+                      "description": "Wind speed, mph"
+                    },
+                    "high": {
+                      "type": "number",
+                      "description": "Today's high, \u00b0F"
+                    },
+                    "low": {
+                      "type": "number",
+                      "description": "Today's low, \u00b0F"
+                    },
+                    "rain": {
+                      "type": "number",
+                      "description": "Chance of precipitation today, %"
+                    },
+                    "sunset": {
+                      "type": "string",
+                      "description": "Sunset, local ISO time"
+                    }
+                  },
+                  "required": [
+                    "temp",
+                    "feels",
+                    "code",
+                    "wind",
+                    "high",
+                    "low",
+                    "rain",
+                    "sunset"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/aerials": {
+      "get": {
+        "operationId": "listAerials",
+        "summary": "Screensaver video clips and their themes",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "tags": {
+                        "default": [],
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "ocean",
+                            "nature",
+                            "space",
+                            "favorite"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "url",
+                      "tags"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/art": {
+      "get": {
+        "operationId": "listArt",
+        "summary": "Paintings used by the art screensaver",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "artist": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string",
+                        "description": "Image URL (IIIF, ~1686 px wide)"
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "artist",
+                      "date",
+                      "url"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cmd": {
+      "post": {
+        "operationId": "sendLauncherCommand",
+        "summary": "Start or stop the screensaver on the launcher",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cmd": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "saver, saver:<ocean|nature|space|favorite|art>, or wake"
+                  }
+                },
+                "required": [
+                  "cmd"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/logs": {
+      "get": {
+        "operationId": "getLogs",
+        "summary": "Recent server log entries (persisted across reboots)",
+        "parameters": [
+          {
+            "schema": {
+              "default": 200,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "How many entries, newest last"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "service",
+            "required": false,
+            "description": "Only entries from this service: input, volume, night, screensaver, sonos"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "time": {
+                        "type": "string"
+                      },
+                      "level": {
+                        "type": "number"
+                      },
+                      "msg": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "time",
+                      "level"
+                    ],
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/log": {
+      "get": {
+        "operationId": "getClientError",
+        "summary": "Last error reported by the launcher page",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

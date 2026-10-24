@@ -1,0 +1,7 @@
+*.ipk
+node_modules
+server/dist
+server/public/js
+server/.state
+server/logs
+.claude/worktrees

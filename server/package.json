@@ -1,0 +1,45 @@
+{
+  "name": "tv-home-server",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Local API and launcher host for the LG TV: input switching, per-source volume, night mode, screensaver, weather.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run build:server && npm run build:web",
+    "build:server": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/server.cjs",
+    "build:web": "esbuild home=web/home/main.ts --bundle --format=iife --target=chrome108 --outdir=public/js",
+    "dev": "npm run build && TVHOME_MOCK=../mock TVHOME_STATE=.state node dist/server.cjs",
+    "typecheck": "tsc",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm test"
+  },
+  "dependencies": {
+    "@fastify/static": "^8.3.0",
+    "@fastify/swagger": "^9.9.2",
+    "fast-xml-parser": "^5.11.2",
+    "fastify": "^5.12.7",
+    "fastify-type-provider-zod": "^7.0.0",
+    "pino": "^10.4.0",
+    "pino-roll": "^4.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.5"
+  },
+  "allowScripts": {
+    "esbuild": false
+  }
+}

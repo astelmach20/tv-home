@@ -1,0 +1,124 @@
+/* 1920x1080 TV canvas. Everything that moves animates transform/opacity only, so the compositor keeps it at 60fps. */
+:root {
+  --bg: #02030a;
+  --fg: #eef3ff;
+  --dim: rgba(220, 230, 255, .55);
+  --faint: rgba(220, 230, 255, .28);
+  --line: rgba(140, 200, 255, .14);
+  --cyan: #63e6ff;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); color: var(--fg);
+  font-family: "LG Smart UI", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+.mono { font-family: "SF Mono", "Menlo", "DejaVu Sans Mono", monospace; text-transform: uppercase; letter-spacing: .28em; }
+
+/* Volumetric light: two soft volumes drifting slowly, moved by transform only. */
+.sky i { position: fixed; border-radius: 50%; will-change: transform; }
+.sky .v1 { width: 1400px; height: 1000px; left: -300px; top: -420px;
+  background: radial-gradient(closest-side, rgba(40, 90, 255, .42), rgba(40, 90, 255, .12) 55%, transparent);
+  animation: drift1 48s ease-in-out infinite alternate; }
+.sky .v2 { width: 1300px; height: 1100px; right: -380px; top: 80px;
+  background: radial-gradient(closest-side, rgba(130, 70, 255, .34), rgba(0, 200, 255, .08) 60%, transparent);
+  animation: drift2 64s ease-in-out infinite alternate; }
+@keyframes drift1 { to { transform: translate3d(260px, 120px, 0) scale(1.12); } }
+@keyframes drift2 { to { transform: translate3d(-240px, -90px, 0) scale(.92); } }
+
+/* Perspective grid floor, scrolling slowly toward the viewer. */
+.floor { position: fixed; left: -50%; right: -50%; bottom: -10px; height: 520px; perspective: 600px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0,0,0,.6) 40%, transparent 85%); mask-image: linear-gradient(to top, #000 0%, rgba(0,0,0,.6) 40%, transparent 85%); }
+.floor .grid { position: absolute; inset: -100% 0 0 0; transform-origin: 50% 100%;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 96px 96px; animation: roll 6s linear infinite; will-change: transform; }
+@keyframes roll { from { transform: rotateX(72deg) translate3d(0, 0, 0); } to { transform: rotateX(72deg) translate3d(0, 96px, 0); } }
+
+#stage { position: relative; z-index: 1; height: 100%; padding: 80px 112px 96px; display: flex; flex-direction: column; }
+
+header { display: flex; flex-direction: column; gap: 18px; }
+#clock { font-size: 168px; font-weight: 100; letter-spacing: -.04em; line-height: .85; }
+#status { font-size: 20px; color: var(--dim); }
+#status b { color: var(--fg); font-weight: 400; }
+#status .sep { color: var(--faint); margin: 0 .9em; }
+
+/* Hero: what OK will do, in plain words. */
+.hero { margin-top: auto; margin-bottom: 44px; min-height: 190px; display: flex; flex-direction: column; justify-content: flex-end; }
+#hero-kicker { font-size: 18px; color: var(--cyan); margin-bottom: 14px; }
+#hero-title { font-size: 92px; font-weight: 200; letter-spacing: -.02em; line-height: 1; }
+#hero-hint { font-size: 18px; color: var(--faint); margin-top: 18px; }
+.hero.swap { animation: rise .32s var(--ease); }
+@keyframes rise { from { opacity: 0; transform: translate3d(0, 14px, 0); } to { opacity: 1; transform: none; } }
+
+.rails { position: relative; display: flex; flex-direction: column; gap: 30px; }
+.rail { display: flex; align-items: center; gap: 40px; transition: opacity .3s var(--ease); }
+.rail-label { width: 96px; flex: 0 0 auto; font-size: 14px; color: var(--faint); }
+.rail.inactive { opacity: .45; }
+.track { display: flex; gap: 22px; transition: transform .35s var(--ease); will-change: transform; }
+
+.item { position: relative; z-index: 1; flex: 0 0 auto; width: 128px; height: 128px; border-radius: 34px;
+  display: flex; align-items: center; justify-content: center; opacity: .62; transform: scale(.86);
+  transition: transform .3s var(--ease), opacity .3s var(--ease); }
+.item img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.item.focused { opacity: 1; transform: scale(1); }
+.item.input { width: 240px; height: 96px; border-radius: 26px; background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.10); justify-content: flex-start; padding: 0 26px; gap: 14px; }
+.item.input .name { font-size: 26px; font-weight: 300; }
+.item.input .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.25); flex: 0 0 auto; }
+.item.input .dot.on { background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+
+/* The lens: one glass element that glides to whatever is focused. */
+#lens { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 42px; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,.16), rgba(255,255,255,.03) 45%, rgba(99,230,255,.06));
+  border: 1px solid rgba(255,255,255,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 0 24px rgba(99,230,255,.10),
+              0 0 0 1px rgba(99,230,255,.18), 0 0 46px rgba(99,230,255,.22), 0 24px 60px rgba(0,0,0,.6);
+  transition: transform .34s var(--ease), width .34s var(--ease), height .34s var(--ease); will-change: transform; }
+#lens::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: -14px; height: 2px; border-radius: 2px;
+  background: var(--cyan); box-shadow: 0 0 16px var(--cyan); opacity: .9; }
+
+/* Screensaver: aerial video with a crossfade, minimal overlay. */
+#saver { position: fixed; inset: 0; z-index: 10; background: #000; opacity: 0; transition: opacity 1.2s ease; }
+#saver.on { opacity: 1; }
+#saver video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 2.5s ease; }
+#saver video.show { opacity: 1; }
+/* Paintings: crossfade in, then a slow Ken Burns push for the time they're on screen. */
+#sv-art { position: absolute; inset: 0; opacity: 0; transition: opacity 2.5s ease; overflow: hidden; background: #000; }
+#sv-art.show { opacity: 1; }
+#sv-art img { width: 100%; height: 100%; object-fit: cover; transform-origin: 60% 45%; will-change: transform; }
+#sv-art.show img { animation: kenburns 80s linear forwards; }
+@keyframes kenburns { from { transform: scale(1.02) translate3d(0, 0, 0); } to { transform: scale(1.14) translate3d(-1.5%, -1%, 0); } }
+.sv-shade { position: absolute; inset: 0; background:
+  radial-gradient(ellipse at 100% 0%, rgba(0,0,0,.45), transparent 45%),
+  linear-gradient(to top, rgba(0,0,0,.35), transparent 25%); }
+.sv-clock { position: absolute; top: 72px; right: 96px; text-align: right; text-shadow: 0 2px 24px rgba(0,0,0,.45); }
+#sv-time { font-size: 150px; font-weight: 100; letter-spacing: -.04em; line-height: .9; }
+#sv-date, #sv-weather { font-size: 20px; color: rgba(255,255,255,.85); margin-top: 16px; }
+#sv-weather { margin-top: 8px; color: rgba(255,255,255,.88); }
+#sv-place { position: absolute; right: 96px; bottom: 72px; font-size: 18px; color: rgba(255,255,255,.75); text-shadow: 0 1px 12px rgba(0,0,0,.6); }
+
+/* Wii Menu theme (web/home/wii): canvases painted once and composited, DOM for its pop-up lists. */
+#wii { display: none; position: fixed; inset: 0; z-index: 2; background: #e9e9e9; overflow: hidden; }
+body[data-theme="wii"] #wii { display: block; }
+body[data-theme="wii"] .sky, body[data-theme="wii"] .floor, body[data-theme="wii"] #stage { display: none; }
+#wii canvas, .wii-strip, .wb { position: absolute; left: 0; top: 0; }
+.wii-strip, #wii .hand { will-change: transform; }
+#wii .glow { opacity: 0; transition: opacity .2s var(--ease); will-change: opacity; }
+#wii .glow.on, .wb.on > .glow { opacity: 1; }
+.wb { transition: transform .2s var(--ease); will-change: transform; }
+.wb.on { transform: scale(1.06); }
+.wb.sd.on { transform: scale(1.08); }
+#wii-opening { position: absolute; inset: 0; background: #fff; will-change: opacity; }
+#wii-opening.go { animation: wii-open 1.4s ease-in-out forwards; }
+@keyframes wii-open { to { opacity: 0; } }
+#wii-menu { position: absolute; inset: 0; background: rgba(0,0,0,.47); display: flex; align-items: center; justify-content: center;
+  font-family: "LG Smart UI", Roboto, Arial, sans-serif; font-weight: 700; animation: wm-in .25s var(--ease); }
+#wii-menu[hidden] { display: none; }
+@keyframes wm-in { from { opacity: 0; transform: translate3d(0, 36px, 0); } }
+.wm-panel { width: 1000px; padding: 54px 90px 56px; border-radius: 40px; border: 4.5px solid #b5b5b5;
+  background: repeating-linear-gradient(#ececec 0 7px, #f3f3f3 7px 9.47px); display: flex; flex-direction: column; gap: 22px; }
+.wm-title { font-size: 48px; color: #7c7c7c; text-align: center; margin-bottom: 18px; }
+.wm-items { display: flex; flex-direction: column; gap: 22px; }
+.wm-item { height: 92px; border-radius: 46px; border: 4.5px solid #b5b5b5; background: linear-gradient(#fff, #e2e2e2);
+  display: flex; align-items: center; justify-content: center; font-size: 40px; color: #666; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; padding: 0 35px; transition: border-color .15s, box-shadow .15s; }
+.wm-item.focused { border: 6.5px solid #3fc0ec;
+  box-shadow: 0 0 0 5px rgba(63,192,236,.25), 0 0 0 10px rgba(63,192,236,.12), 0 0 0 15px rgba(63,192,236,.08); }

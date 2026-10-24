@@ -1,0 +1,27 @@
+#!/bin/sh
+# Keep LG's ad and telemetry services from running, without touching LG's files: everything here lives in RAM and is
+# redone at every boot. LG's Home still works without them.
+#   remotelogger, service-logger  usage and log uploads
+#   contentminer, nudge           home-screen recommendations and promotions
+#   acr2                          Live Plus screen recognition
+#   admanager, adoverlay-service  ads on Home and over live TV
+#   sportsalarm                   sports score pop-ups
+# Undo until the next boot: systemctl unmask --runtime <unit>s, then umount each /usr/sbin binary. Permanently: delete
+# this file and reboot.
+for s in remotelogger service-logger contentminer nudge; do
+    systemctl mask --runtime $s.service >/dev/null 2>&1
+    systemctl stop $s.service 2>/dev/null
+done
+# On-demand luna services: bind a do-nothing program over each, so ls-hubd starts that instead.
+noop=/home/root/debloat/noop
+[ -x $noop ] || { mkdir -p ${noop%/*} && printf '#!/bin/sh\nexit 0\n' > $noop && chmod 755 $noop; }
+for b in acr2 admanager sportsalarm adoverlay-service; do
+    [ -e /usr/sbin/$b ] || continue
+    grep -q " /usr/sbin/$b " /proc/mounts || mount --bind $noop /usr/sbin/$b
+    pkill -9 -f "^/usr/sbin/$b"
+done
+# LG ad servers missing from 50-adblock's list (which made /etc/hosts writable), and the firmware update servers
+# webosbrew's startup.sh doesn't block: an update could remove root and these boot hooks.
+grep -q eic.ads.lgtvcommon.com /etc/hosts || printf '0.0.0.0 %s\n' eic.ads.lgtvcommon.com nl.ad.lgsmartad.com \
+    nl.info.lgsmartad.com >> /etc/hosts
+grep -q nsu.lge.com /etc/hosts || printf '%s nsu.lge.com snu-dev.lge.com\n' 127.0.0.1 ::1 >> /etc/hosts
