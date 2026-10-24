@@ -42,6 +42,12 @@ without a TV, run `npm run dev` in `server/`: it serves against the mock TV in [
 - Launcher and server: delete `/var/lib/webosbrew/init.d/70-tvhome` and `/home/root/tv-home`, then remove the
   `org.tvhome.launcher` app.
 
+## LG's own source code
+
+This repo doesn't include LG's firmware. Its proprietary parts (Home, ACR, the ad services) can't be redistributed.
+LG publishes the open-source parts (Linux kernel, GPL and LGPL packages) for each TV model at
+[opensource.lge.com](https://opensource.lge.com); search for your model number.
+
 ## Licence
 
 MIT. The Wii theme's code and sounds are from wii-tv under its MIT licence.
