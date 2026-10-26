@@ -52,8 +52,8 @@ Untick every one you don't need.
 
 ## What the debloat hook does
 
-[tv/init.d/55-debloat](tv/init.d/55-debloat) runs at every boot. It changes nothing on LG's filesystem; everything
-lives in RAM.
+[tv/init.d/55-debloat](tv/init.d/55-debloat) runs at every boot. Everything except the declined agreements lives in
+RAM.
 
 | Service | What it does | How it's stopped |
 | --- | --- | --- |
@@ -62,9 +62,29 @@ lives in RAM.
 | `acr2` | Live Plus screen recognition | A do-nothing program bind-mounted over the binary |
 | `admanager`, `adoverlay-service` | Ads on Home and over live TV | Same |
 | `sportsalarm` | Sports score pop-ups | Same |
+| `rdxd`, `uploadd` | Builds crash and analytics reports, and uploads them | `rdxd`: masked. `uploadd`: no-op bind-mount |
+| `dmost` | LG Channels beacons: session IDs, foreground app, last channel | `systemctl mask --runtime` |
+| `iconnectivity` | LG phone pairing | No-op bind-mount |
+| `amazon-alexa-adapter` | Alexa built-in | Same |
 
-It also points three ad servers and LG's firmware update servers (`nsu.lge.com`, `snu-dev.lge.com`) at localhost.
-A firmware update can remove root, and with it this hook.
+It also:
+
+- **Declines the optional agreements** at every boot (marketing, voice, ACR/viewing information, interest-based ads,
+  diagnostics), because LG re-accepts them after some updates. Consent is stored in four places:
+  `/var/luna/preferences/eula`, which the Settings screen shows, and three copies of
+  `sdp/eula-service/eula.json` under `/mnt/lg/{cmn_data,cache,user}`, which the services read (`"A"` accepted,
+  `"D"` declined). Terms of Use and the Privacy Policy stay accepted because the app store needs them. The first
+  original of each file is kept in `/home/root/debloat/*.orig`.
+- **Closes port 3001 to the network.** It's LG's phone-remote API (the ThinQ app): after one pairing prompt, a device
+  on your network gets full remote control. LG already limits the plain port 3000 to localhost; the hook does the
+  same for 3001 and turns off the matching "mobile device access" setting.
+- **Hides the screen capture.** LG's OLED service writes a 640×360 capture of the screen to `/tmp/capture.rgb` every
+  few seconds, readable by any app. The hook makes it root-only.
+- Points three ad servers and LG's firmware update servers (`nsu.lge.com`, `snu-dev.lge.com`) at localhost. A
+  firmware update can remove root, and with it this hook.
+
+Make sure the Homebrew Channel's telnet server is off (`/var/luna/preferences/webosbrew_telnet_disabled` exists): when
+it's on, anyone on your network gets a root shell with no password.
 
 LG's Home, the app store and streaming apps keep working.
 
@@ -81,4 +101,6 @@ Don't block `*.tv.wiselg.com` or `ngfts.tv.wiselg.com`: the app store, sign-in a
 ## Credits
 
 The debloat service list started from [cleanyourtv-WebOS](https://github.com/lasharor/cleanyourtv-WebOS) and was
-checked against this TV.
+checked against this TV. The extra services, the consent stores, the port 3001 fix and the screen capture finding come
+from [own-your-glass](https://github.com/JulioFerrero/own-your-glass) (MIT), a fuller hardening toolkit for rooted LG
+TVs.

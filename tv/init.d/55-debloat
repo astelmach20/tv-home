@@ -6,16 +6,23 @@
 #   acr2                          Live Plus screen recognition
 #   admanager, adoverlay-service  ads on Home and over live TV
 #   sportsalarm                   sports score pop-ups
-# Undo until the next boot: systemctl unmask --runtime <unit>s, then umount each /usr/sbin binary. Permanently: delete
-# this file and reboot.
-for s in remotelogger service-logger contentminer nudge; do
+#   rdxd, uploadd                 crash and analytics reports, and their upload
+#   dmost                         LG Channels beacons (session IDs, foreground app, last channel)
+#   iconnectivity                 LG phone pairing
+#   amazon-alexa-adapter          Alexa built-in
+# It also declines LG's optional agreements, closes the phone-remote port 3001 to the network and hides the screen
+# capture LG keeps in /tmp. The extra services, the consent stores and the port fix come from own-your-glass
+# (https://github.com/JulioFerrero/own-your-glass, MIT).
+# Undo until the next boot: systemctl unmask --runtime <unit>s, then umount each /usr/sbin binary and the xinetd file.
+# Permanently: delete this file, copy back the *.orig consent files in /home/root/debloat, and reboot.
+for s in remotelogger service-logger contentminer nudge rdxd dmost; do
     systemctl mask --runtime $s.service >/dev/null 2>&1
     systemctl stop $s.service 2>/dev/null
 done
 # On-demand luna services: bind a do-nothing program over each, so ls-hubd starts that instead.
 noop=/home/root/debloat/noop
 [ -x $noop ] || { mkdir -p ${noop%/*} && printf '#!/bin/sh\nexit 0\n' > $noop && chmod 755 $noop; }
-for b in acr2 admanager sportsalarm adoverlay-service; do
+for b in acr2 admanager sportsalarm adoverlay-service uploadd iconnectivity amazon-alexa-adapter; do
     [ -e /usr/sbin/$b ] || continue
     grep -q " /usr/sbin/$b " /proc/mounts || mount --bind $noop /usr/sbin/$b
     pkill -9 -f "^/usr/sbin/$b"
@@ -25,3 +32,47 @@ done
 grep -q eic.ads.lgtvcommon.com /etc/hosts || printf '0.0.0.0 %s\n' eic.ads.lgtvcommon.com nl.ad.lgsmartad.com \
     nl.info.lgsmartad.com >> /etc/hosts
 grep -q nsu.lge.com /etc/hosts || printf '%s nsu.lge.com snu-dev.lge.com\n' 127.0.0.1 ::1 >> /etc/hosts
+# Decline the optional agreements: marketing, voice, ACR/viewing, ad targeting, diagnostics. Terms of Use (S_SVC) and
+# the Privacy Policy (S_PRG) stay accepted; the app store needs them. LG re-accepts on some updates, so this runs every
+# boot. The settings view is /var/luna/preferences/eula; the services read the three eula-service stores ("A"/"D").
+optional='S_MKT S_VNG S_ADG S_TAG S_DDA'
+decline() {  # <file> <sed script>: rewrite in place, keeping the first original as <dir>/<name>.orig
+    [ -f "$1" ] || return 0
+    orig=${noop%/*}/$(echo "$1" | tr / _).orig
+    [ -e "$orig" ] || cp -p "$1" "$orig"
+    sed "$2" "$1" > "$1.tmp" && [ -s "$1.tmp" ] && mv "$1.tmp" "$1" || rm -f "$1.tmp"
+}
+script=
+for id in $optional; do
+    script="$script s/\(\"id\":\"$id\"[^}]*\"accepted\":\)true/\1false/;"
+done
+for k in acrOnAllowed acrAdAllowed customAdAllowed voiceAllowed voice2Allowed additionalDataAllowed \
+    marketingOnAllowed shoppingOnAllowed; do
+    script="$script s/\"$k\":true/\"$k\":false/;"
+done
+decline /var/luna/preferences/eula "$script"
+script=
+for id in $optional; do
+    script="$script s/\"managementTypeCode\":\"$id\",\"status\":\"A\"/\"managementTypeCode\":\"$id\",\"status\":\"D\"/;"
+done
+for store in cmn_data cache user; do
+    decline /mnt/lg/$store/sdp/eula-service/eula.json "$script"
+done
+# Port 3001 is LG's phone-remote API (ThinQ app): after one pairing prompt a device on the network controls the TV.
+# LG already limits the plain port 3000 to localhost; do the same for 3001.
+ssap=/etc/xinetd.d/ssg_https
+if [ -f $ssap ] && ! grep -q " $ssap " /proc/mounts; then
+    sed '/^[[:space:]]*port[[:space:]]*=/a\    only_from       = 127.0.0.1' $ssap > ${noop%/*}/ssg_https
+    mount --bind ${noop%/*}/ssg_https $ssap && pkill -HUP xinetd
+fi
+# The matching setting; settingsservice can drop it early in boot, so retry until it reads back false.
+(for i in 1 2 3 4 5 6; do
+    luna-send -n 1 luna://com.webos.settingsservice/setSystemSettings \
+        '{"category":"network","settings":{"allowMobileDeviceAccess":false}}' >/dev/null 2>&1
+    luna-send -n 1 luna://com.webos.settingsservice/getSystemSettings \
+        '{"category":"network","keys":["allowMobileDeviceAccess"]}' | grep -q '"allowMobileDeviceAccess":false' && break
+    sleep 10
+done) </dev/null >/dev/null 2>&1 &
+# LG's OLED service writes a 640x360 screen capture to /tmp every few seconds, readable by any app. Keep it root-only;
+# the writer runs as root, so it's unaffected. Recheck every minute in case it's recreated.
+(while :; do chmod 600 /tmp/capture.rgb 2>/dev/null; sleep 60; done) </dev/null >/dev/null 2>&1 &

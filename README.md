@@ -14,8 +14,8 @@ telemetry services. Tested on an LG OLED C5 (2025, webOS 11) rooted with the
 - **Sonos.** Follows a Sonos soundbar's source over UPnP events.
 - **Power and CEC log.** Records every power change with LG's own reason and which HDMI device woke the TV.
 - **Debloat.** [tv/init.d/55-debloat](tv/init.d/55-debloat) stops LG's ACR, ad, recommendation and log-upload
-  services at every boot and blocks firmware updates. See [PRIVACY.md](PRIVACY.md) for what LG collects and what
-  this turns off.
+  services at every boot, declines the optional user agreements, closes the phone-remote port to the network and
+  blocks firmware updates. See [PRIVACY.md](PRIVACY.md) for what LG collects and what this turns off.
 - **MCP server.** [mcp/](mcp/) lets an AI agent read the TV's state and logs, take screenshots and run commands on it.
 
 ## Requirements
@@ -38,7 +38,8 @@ without a TV, run `npm run dev` in `server/`: it serves against the mock TV in [
 
 ## Undo
 
-- Debloat: delete `/var/lib/webosbrew/init.d/55-debloat` on the TV and reboot. Everything it changes lives in RAM.
+- Debloat: delete `/var/lib/webosbrew/init.d/55-debloat` on the TV, copy each `/home/root/debloat/*.orig` back to
+  its path (the file name is the path with `/` as `_`), and reboot. Everything else it changes lives in RAM.
 - Launcher and server: delete `/var/lib/webosbrew/init.d/70-tvhome` and `/home/root/tv-home`, then remove the
   `org.tvhome.launcher` app.
 
